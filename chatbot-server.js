@@ -11,6 +11,28 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = process.env.GRPQ_MODEL;
 
+// Endpoint pour récupérer la documentation en ligne dynamiquement
+app.get('/fetchDoc', (req, res) => {
+    exec('node Tools/fetchDoc.js', { cwd: __dirname }, (error, stdout, stderr) => {
+        if (error) {
+            res.status(500).send('Erreur lors de la récupération de la documentation');
+            return;
+        }
+        res.send(stdout);
+    })
+});
+
+// Endpoint pour servir les frais de livraison dynamiquement
+app.get('/fetchDelivery', (req, res) => {
+    exec('node Tools/fetchDeliveryPrices.js', { cwd: __dirname }, (error, stdout, stderr) => {
+        if (error) {
+            res.status(500).send('Erreur lors de la récupération des frais de livraison');
+            return;
+        }
+        res.send(stdout);
+    });
+});
+
 // Route /chat pour générer les réponses du bot IA
 app.post('/chat', async (req, res) => {
     const userMsg = req.body.message;
@@ -25,7 +47,10 @@ app.post('/chat', async (req, res) => {
                 {
                     role: 'system',
                     content:
-                        'Tu es un assistant personel'
+                        'Tu es un assistant utile pour un site e-commerce qui s appelle ShopEx et qui vend des produits high tech.\n\n' +
+                        '- Si l\'utilisateur pose une question relative à la navigation sur le site, la création ou gestion de compte, l\'achat, la commande, le paiement ou la livraison, tu dois répondre exactement : {"tool":"documentation"} et rien d\'autre.\n\n' +
+                        '- Si la question concerne les frais de livraison, tu dois répondre exactement : {"tool":"delivery"} et rien d\'autre.\n\n' +
+                        'Sinon, réponds normalement.'
                 },
                 { role: 'user', content: userMsg }
             ];
