@@ -50,7 +50,7 @@
             shadow: 'rgba(212,175,55,0.20)', // Ombre dorée
             shadowLight: 'rgba(212,175,55,0.15)' // Ombre dorée légère
         },
-        // crtl-i pour demander d'autres palettes de couleurs à copilot
+        // crtl-i pour demander d'autres palettes de couleurs à copilot. echec c'est moche
         grayBlueOrange: {
             primary: '#4a90e2', // Bleu principal
             background: '#f5f5f5', // Fond gris clair
@@ -100,7 +100,7 @@
     chatWindow.style.bottom = '90px';
     chatWindow.style.right = '32px';
     chatWindow.style.width = '640px';
-    chatWindow.style.height = '840px';
+    chatWindow.style.height = '80%';
     chatWindow.style.background = colors.background;
     chatWindow.style.borderRadius = '12px';
     chatWindow.style.boxShadow = `0 4px 24px ${colors.shadow}`;
