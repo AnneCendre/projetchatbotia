@@ -219,6 +219,23 @@
     // Réponse du bot (simulation)
     async function botReply(userText) {
         addMessage('...', 'bot');
+        try {
+            const res = await fetch('http://localhost:3001/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({message: userText, sessionId })
+            });
+            const data = await res.json();
+            messages.lastChild.remove();
+            console.log("*** : ", data);
+            {
+                addMessage(data.reply || 'Réponse indisponible.', 'bot');
+                if (data.extra) addMessage(data.extra, 'bot');
+            }
+        } catch {
+            messages.lastChild.remove();
+            addMessage('Erreur serveur.', 'bot');
+        }
     }
 
     // Gérer l'envoie des messages
