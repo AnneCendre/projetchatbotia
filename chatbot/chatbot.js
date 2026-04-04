@@ -49,19 +49,6 @@
             border: '#4a4a4a', // Bordure gris moyen
             shadow: 'rgba(212,175,55,0.20)', // Ombre dorée
             shadowLight: 'rgba(212,175,55,0.15)' // Ombre dorée légère
-        },
-        // crtl-i pour demander d'autres palettes de couleurs à copilot. echec c'est moche
-        grayBlueOrange: {
-            primary: '#4a90e2', // Bleu principal
-            background: '#f5f5f5', // Fond gris clair
-            messagesBg: '#e0e0e0', // Fond des messages gris moyen
-            userBg: '#4a90e2', // Bulle utilisateur bleu
-            userText: '#ffffff', // Texte utilisateur blanc
-            botBg: '#f39c12', // Bulle bot orange
-            botText: '#ffffff', // Texte bot blanc
-            border: '#dcdcdc', // Bordure gris clair
-            shadow: 'rgba(74,144,226,0.15)', // Ombre bleu clair
-            shadowLight: 'rgba(74,144,226,0.10)' // Ombre bleu très légère
         }
     } // Fin palettes couleurs
 
@@ -71,8 +58,6 @@
     const colors = colorThemes[requestedTheme] || colorThemes.blue;
 
     // Générer un sessionId unique pour cette session
-    // session de l'utilisateur pour différencier les conversations dans le backend
-    // permet de conserver le contexte de la conversation avec cet identifiant unique
     const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     // Création du bouton d'ouverture du chat
@@ -92,15 +77,15 @@
     chatBtn.style.boxShadow = `0 2px 8px ${colors.shadowLight}`;
     chatBtn.style.cursor = 'pointer';
     document.body.appendChild(chatBtn);
-    
+
     // Création de la fenêtre de chat
     const chatWindow = document.createElement('div');
     chatWindow.id = 'chatbot-window';
     chatWindow.style.position = 'fixed';
     chatWindow.style.bottom = '90px';
     chatWindow.style.right = '32px';
-    chatWindow.style.width = '640px';
-    chatWindow.style.height = '80%';
+    chatWindow.style.width = '320px';
+    chatWindow.style.height = '420px';
     chatWindow.style.background = colors.background;
     chatWindow.style.borderRadius = '12px';
     chatWindow.style.boxShadow = `0 4px 24px ${colors.shadow}`;
@@ -219,6 +204,59 @@
     // Réponse du bot (simulation)
     async function botReply(userText) {
         addMessage('...', 'bot');
+        try {
+            const res = await fetch('http://localhost:3001/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({message: userText, sessionId })
+            });
+            const data = await res.json();
+            messages.lastChild.remove();
+            console.log("*** : ", data);
+
+            // Gestion des tools
+            if (data.reply === '{"tool":"documentation"}') {
+                // Gestion du cache local documentation
+                let doc = localStorage.getItem('shopDoc');
+                if (!doc) {
+                    const docRes = await fetch('http://localhost:3001/fetchDoc');
+                    doc = await docRes.text();
+                    localStorage.setItem('shopDoc', doc);
+                }
+                // Réinterrogation de Groq avec la doc dans le contexte
+                const res2 = await fetch('http://localhost:3001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({message: userText, documentation: doc, sessionId })
+                })
+                const data2 = await res2.json();
+                addMessage(data2.reply || 'Réponse indisponible.', 'bot');
+                if (data2.extra) addMessage(data2.extra, 'bot');
+            } else if (data.reply === '{"tool":"delivery"}') {
+                // Gestion du cache local frais de livraison
+                let delivery = localStorage.getItem('shopDelivery');
+                if (!delivery) {
+                    const deliveryRes = await fetch('http://localhost:3001/fetchDelivery');
+                    delivery = await deliveryRes.text();
+                    localStorage.setItem('shopDelivery', delivery);
+                }
+                // Réinterrogation Groq avec les frais de livraison en contexte
+                const res2 = await fetch('http://localhost:3001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userText, delivery, sessionId })
+                });
+                const data2 = await res2.json();
+                addMessage(data2.reply || 'Réponse indisponible.', 'bot');
+                if (data2.extra) addMessage(data2.extra, 'bot');
+            } else {
+                addMessage(data.reply || 'Réponse indisponible.', 'bot');
+                if (data.extra) addMessage(data.extra, 'bot');
+            }
+        } catch {
+            messages.lastChild.remove();
+            addMessage('Erreur serveur.', 'bot');
+        }
     }
 
     // Gérer l'envoie des messages
