@@ -65,6 +65,8 @@
         }
     } // Fin palettes couleurs
 
+    // mise en forme du widget de chat et logique d'interaction
+
     // Récupération du thème depuis le script
     const currentScript = document.currentScript;
     const requestedTheme = currentScript?.getAttribute('theme') || 'blue';
@@ -159,6 +161,7 @@
     // Logique d'ouverture/fermeture du chat
     chatBtn.onclick = () => chatWindow.style.display = 'flex';
     header.querySelectorAll('#chatbot-close')[0].onclick = () => chatWindow.style.display = 'none';
+    
 
     // Interpréteur markdown simple
     function parseMarkdown(md) {
@@ -226,9 +229,52 @@
                 body: JSON.stringify({message: userText, sessionId })
             });
             const data = await res.json();
-            messages.lastChild.remove();
-            console.log("*** : ", data);
-            {
+            console.log("*** : ",  data.reply ? data.reply.substring(0, 30) : 'pas de réponse du bot');
+            if (data.reply === '{"tool":"documentation"}') {
+                // Gestion du cache local documentation
+                let doc = localStorage.getItem('shopDoc');
+                console.log("réintérogation du bot avec la documentation ", doc ? doc.substring(0, 30) : 'pas de doc en cache');
+                if (!doc) {
+                    console.log("fetch de la documentation ",);
+                    const docRes = await fetch('http://localhost:3001/fetchDoc');
+                    doc = await docRes.text();
+                    localStorage.setItem('shopDoc', doc);
+                }
+                // Réinterrogation de Groq avec la doc dans le contexte
+                const res2 = await fetch('http://localhost:3001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({message: userText, documentation: doc, sessionId })
+                })
+                const data2 = await res2.json();
+                messages.lastChild.remove();
+                addMessage(data2.reply || 'Réponse indisponible.', 'bot');
+                if (data2.extra) addMessage(data2.extra, 'bot');
+                console.log ("fin de la gestion de la documentation");
+            } else if (data.reply === '{"tool":"delivery"}') {
+                // Gestion du cache local documentation
+                let delivery = localStorage.getItem('shopDelivery');
+                console.log("doc frais de livraison : ", delivery ? delivery.substring(0, 30) : 'pas de frais de livraison en cache');
+                if (!delivery) {
+                    console.log("fetch des frais de livraison ",);
+                    const deliveryRes = await fetch('http://localhost:3001/fetchDelivery');
+                    delivery = await deliveryRes.text();
+                    localStorage.setItem('shopDelivery', delivery);
+                }
+                // Réinterrogation de Groq avec la doc dans le contexte
+                console.log("réintérogation du bot avec les frais de livraison ", delivery?.substring(0, 30));
+                const res2 = await fetch('http://localhost:3001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({message: userText, delivery, sessionId })
+                })
+                const data2 = await res2.json();
+                messages.lastChild.remove();
+                addMessage(data2.reply || 'Réponse indisponible.', 'bot');
+                if (data2.extra) addMessage(data2.extra, 'bot');
+            } else {
+                console.log("Réponse du bot : ", data.reply ? data.reply.substring(0, 30) : 'pas de réponse du bot');
+                messages.lastChild.remove();
                 addMessage(data.reply || 'Réponse indisponible.', 'bot');
                 if (data.extra) addMessage(data.extra, 'bot');
             }

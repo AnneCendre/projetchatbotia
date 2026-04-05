@@ -18,6 +18,7 @@ app.get('/fetchDoc', (req, res) => {
             res.status(500).send('Erreur lors de la récupération de la documentation');
             return;
         }
+        console.log("Documentation envoyée par le serveur : ", stdout.substring(0, 30));
         res.send(stdout);
     })
 });
@@ -29,6 +30,7 @@ app.get('/fetchDelivery', (req, res) => {
             res.status(500).send('Erreur lors de la récupération des frais de livraison');
             return;
         }
+        console.log("Frais de livraison envoyés par le serveur : ", stdout.substring(0, 30));
         res.send(stdout);
     });
 });
@@ -42,7 +44,25 @@ app.post('/chat', async (req, res) => {
     
     try {
         let messages;
-        {
+        if (req.body.documentation) {
+            console.log("Documentation reçue par le serveur : ", req.body.documentation.substring(0, 30));
+            messages = [
+                { role: 'system', content:
+                    'Tu es un assistant utile pour un site e-commerce. Utilise la documentation fournie pour répondre précisément à la question de l\'utilisateur. Ne propose pas d\'utiliser un outil, réponds directement.'
+                },
+                { role: 'system', content: 'Documentation du site :\n' + req.body.documentation },
+                { role: 'user', content: userMsg }
+            ];
+        } else if (req.body.delivery) {
+            console.log("Frais de livraison reçus par le serveur : ", req.body.delivery.substring(0, 30));
+            messages = [
+                { role: 'system', content:
+                    'Répond à l\'utilisateur en utilisant exclusivement le tableau fourni sur les frais de livraison : '
+                },
+                { role: 'system', content: 'Frais de livraison :\n' + req.body.delivery },
+                { role: 'user', content: userMsg }
+            ];
+        } else {       
             messages = [
                 {
                     role: 'system',
